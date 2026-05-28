@@ -1,14 +1,13 @@
 // Character & Persona Sorter Extension for SillyTavern
-// Кнопки появляются по долгому нажатию (long press) — работает и на телефоне, и на ПК
+// Двойной тап — показывает меню сортировки
 
 import { saveSettingsDebounced } from '../../../../script.js';
 import { extension_settings, getContext } from '../../../extensions.js';
 
 const EXT_NAME = 'character-persona-sorter';
-
 function log(...args) { console.log(`[${EXT_NAME}]`, ...args); }
 
-// ─── Хранилище порядка ───────────────────────────────────────────────────────
+// ─── Хранилище ───────────────────────────────────────────────────────────────
 
 const CHAR_ORDER_KEY    = 'cps_char_order';
 const PERSONA_ORDER_KEY = 'cps_persona_order';
@@ -21,25 +20,22 @@ function saveOrder(key, order) {
     localStorage.setItem(key, JSON.stringify(order));
 }
 
-// ─── Применить сохранённый порядок ──────────────────────────────────────────
+// ─── Применить порядок ───────────────────────────────────────────────────────
 
 function applyOrder(listSel, itemsSel, getNameFn, orderKey) {
     const list = document.querySelector(listSel);
     if (!list) return;
     const order = getOrder(orderKey);
     if (!order.length) return;
-
     const items = [...list.querySelectorAll(itemsSel)];
     const top = [], bottom = [], rest = [];
-
     items.forEach(el => {
         const name  = getNameFn(el);
         const entry = order.find(e => (typeof e === 'object' ? e.name : e) === name);
-        if (!entry)                                              { rest.push(el);   return; }
+        if (!entry) { rest.push(el); return; }
         if (typeof entry === 'object' && entry.pos === 'bottom') bottom.push(el);
-        else                                                     top.push(el);
+        else top.push(el);
     });
-
     [...top, ...rest, ...bottom].forEach(el => list.appendChild(el));
 }
 
@@ -48,20 +44,19 @@ function applyCharOrder() {
 }
 function applyPersonaOrder() {
     [
-        ['#persona_list',    '.persona_item'],
-        ['.persona_list',    '.persona_item'],
-        ['#personas-list',   '.persona_item'],
+        ['#persona_list', '.persona_item'],
+        ['.persona_list', '.persona_item'],
+        ['#personas-list', '.persona_item'],
         ['#user_avatar_block', '.avatar-container'],
     ].forEach(([ls, is]) => applyOrder(ls, is, getPersonaName, PERSONA_ORDER_KEY));
 }
 
-// ─── Имена ──────────────────────────────────────────────────────────────────
+// ─── Имена ───────────────────────────────────────────────────────────────────
 
 function getCharName(el) {
     return (
         el.querySelector('.ch_name')?.textContent.trim() ||
-        el.dataset.chid ||
-        el.getAttribute('chid') ||
+        el.dataset.chid || el.getAttribute('chid') ||
         el.textContent.trim().split('\n')[0]
     );
 }
@@ -74,7 +69,7 @@ function getPersonaName(el) {
     );
 }
 
-// ─── Закрепить позицию ──────────────────────────────────────────────────────
+// ─── Закрепить позицию ───────────────────────────────────────────────────────
 
 function pin(key, name, pos, applyFn) {
     let order = getOrder(key).filter(e => (typeof e === 'object' ? e.name : e) !== name);
@@ -84,56 +79,33 @@ function pin(key, name, pos, applyFn) {
     applyFn();
 }
 
-// ─── Long-press логика ───────────────────────────────────────────────────────
-// 500 мс — показываем меню; при движении пальца/мыши — отменяем
+// ─── Double-tap ──────────────────────────────────────────────────────────────
 
-const LONG_PRESS_MS = 500;
+const DOUBLE_TAP_MS = 350;
 
-function attachLongPress(el, onLongPress) {
-    let timer   = null;
-    let moved   = false;
-    let startX  = 0;
-    let startY  = 0;
+function attachDoubleTap(el, onDoubleTap) {
+    let lastTap = 0;
 
-    function start(x, y) {
-        moved  = false;
-        startX = x;
-        startY = y;
-        timer  = setTimeout(() => {
-            if (!moved) onLongPress();
-        }, LONG_PRESS_MS);
-    }
-
-    function cancel() { clearTimeout(timer); }
-
-    function move(x, y) {
-        if (Math.abs(x - startX) > 8 || Math.abs(y - startY) > 8) {
-            moved = true;
-            cancel();
+    // Тач: два тапа подряд
+    el.addEventListener('touchend', () => {
+        const now = Date.now();
+        if (now - lastTap < DOUBLE_TAP_MS) {
+            onDoubleTap();
+            lastTap = 0;
+        } else {
+            lastTap = now;
         }
-    }
+    }, { passive: true });
 
-    // Блокируем браузерное меню
-    el.addEventListener('contextmenu', e => e.preventDefault());
-    el.querySelectorAll('img').forEach(img => {
-        img.addEventListener('contextmenu', e => e.preventDefault());
-        img.draggable = false;
+    // ПК: двойной клик
+    el.addEventListener('dblclick', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        onDoubleTap();
     });
-
-    // Touch
-    el.addEventListener('touchstart',  e => start(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-    el.addEventListener('touchend',    cancel,                { passive: true });
-    el.addEventListener('touchcancel', cancel,                { passive: true });
-    el.addEventListener('touchmove',   e => move(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-
-    // Mouse (ПК)
-    el.addEventListener('mousedown', e => start(e.clientX, e.clientY));
-    el.addEventListener('mouseup',   cancel);
-    el.addEventListener('mousemove', e => move(e.clientX, e.clientY));
-    el.addEventListener('mouseleave', cancel);
 }
 
-// ─── Всплывающее меню ────────────────────────────────────────────────────────
+// ─── Меню ────────────────────────────────────────────────────────────────────
 
 let activeMenu = null;
 
@@ -158,7 +130,7 @@ function showSortMenu(anchorEl, name, isPersona) {
     btnTop.addEventListener('click', e => {
         e.stopPropagation();
         if (isPersona) pin(PERSONA_ORDER_KEY, name, 'top', applyPersonaOrder);
-        else           pin(CHAR_ORDER_KEY,    name, 'top', applyCharOrder);
+        else           pin(CHAR_ORDER_KEY, name, 'top', applyCharOrder);
         showToast(`«${name}» → начало`);
         closeActiveMenu();
     });
@@ -169,7 +141,7 @@ function showSortMenu(anchorEl, name, isPersona) {
     btnBot.addEventListener('click', e => {
         e.stopPropagation();
         if (isPersona) pin(PERSONA_ORDER_KEY, name, 'bottom', applyPersonaOrder);
-        else           pin(CHAR_ORDER_KEY,    name, 'bottom', applyCharOrder);
+        else           pin(CHAR_ORDER_KEY, name, 'bottom', applyCharOrder);
         showToast(`«${name}» → конец`);
         closeActiveMenu();
     });
@@ -192,25 +164,19 @@ function showSortMenu(anchorEl, name, isPersona) {
     document.body.appendChild(menu);
     activeMenu = menu;
 
-    // Позиционируем рядом с карточкой
     const rect = anchorEl.getBoundingClientRect();
     const mw   = 220;
     let left   = rect.left + rect.width / 2 - mw / 2;
-    let top    = rect.bottom + 6 + window.scrollY;
-
-    // Не выходим за правый край
+    let top    = rect.bottom + 6;
     if (left + mw > window.innerWidth - 8) left = window.innerWidth - mw - 8;
     if (left < 8) left = 8;
+    if (top + 160 > window.innerHeight) top = rect.top - 160;
 
-    menu.style.left  = `${left}px`;
-    menu.style.top   = `${top}px`;
-    menu.style.width = `${mw}px`;
+    menu.style.cssText = `position:fixed;left:${left}px;top:${top}px;width:${mw}px;z-index:99999;`;
 
-    // Вибрация на телефоне
     if (navigator.vibrate) navigator.vibrate(40);
 }
 
-// Закрывать меню при тапе вне него
 document.addEventListener('touchstart', e => {
     if (activeMenu && !activeMenu.contains(e.target)) closeActiveMenu();
 }, { passive: true });
@@ -218,14 +184,14 @@ document.addEventListener('mousedown', e => {
     if (activeMenu && !activeMenu.contains(e.target)) closeActiveMenu();
 });
 
-// ─── Навешиваем long press на карточки ──────────────────────────────────────
+// ─── Инжект ──────────────────────────────────────────────────────────────────
 
 function injectCharButtons() {
     document.querySelectorAll('.character_select').forEach(el => {
         if (el.dataset.cpsReady) return;
         el.dataset.cpsReady = '1';
         const name = getCharName(el);
-        attachLongPress(el, () => showSortMenu(el, name, false));
+        attachDoubleTap(el, () => showSortMenu(el, name, false));
     });
 }
 
@@ -241,7 +207,7 @@ function injectPersonaButtons() {
             if (el.dataset.cpsReady) return;
             el.dataset.cpsReady = '1';
             const name = getPersonaName(el);
-            attachLongPress(el, () => showSortMenu(el, name, true));
+            attachDoubleTap(el, () => showSortMenu(el, name, true));
         });
     });
 }
@@ -260,7 +226,7 @@ function showToast(msg) {
     }, 2200);
 }
 
-// ─── MutationObserver ────────────────────────────────────────────────────────
+// ─── Observer ────────────────────────────────────────────────────────────────
 
 let injectTimeout = null;
 function scheduleInject() {
@@ -288,22 +254,17 @@ const observer = new MutationObserver(mutations => {
 // ─── Init ────────────────────────────────────────────────────────────────────
 
 jQuery(async () => {
-    log('Extension loaded');
-
+    log('Extension loaded — double tap a card to sort');
     setTimeout(() => {
         injectCharButtons();
         injectPersonaButtons();
         applyCharOrder();
         applyPersonaOrder();
     }, 1500);
-
     observer.observe(document.body, { childList: true, subtree: true });
-
     document.addEventListener('click', e => {
         if (e.target.closest('#rm_button_characters, #show_more_messages')) {
             scheduleInject();
         }
     });
-
-    log('Ready — long press a card to sort');
 });
