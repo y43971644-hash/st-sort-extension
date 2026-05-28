@@ -113,6 +113,13 @@ function attachLongPress(el, onLongPress) {
         }
     }
 
+    // Блокируем браузерное меню
+    el.addEventListener('contextmenu', e => e.preventDefault());
+    el.querySelectorAll('img').forEach(img => {
+        img.addEventListener('contextmenu', e => e.preventDefault());
+        img.draggable = false;
+    });
+
     // Touch
     el.addEventListener('touchstart',  e => start(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
     el.addEventListener('touchend',    cancel,                { passive: true });
