@@ -1,0 +1,11 @@
+{
+    "display_name": "Character & Persona Sorter",
+    "name": "character-persona-sorter",
+    "version": "1.0.0",
+    "author": "custom",
+    "description": "Adds 'Move to Top' and 'Move to Bottom' buttons on character and persona cards.",
+    "js": "index.js",
+    "css": "style.css",
+    "optional": true,
+    "dependencies": []
+}
