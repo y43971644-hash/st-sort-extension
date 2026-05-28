@@ -1,93 +1,80 @@
 /* ── Character & Persona Sorter ─────────────────────────────────────── */
 
-/* ── Всплывающее меню ───────────────────────────────────────────────── */
+/* ── Кнопка режима сортировки ───────────────────────────────────────── */
 
-.cps-menu {
-    position: absolute;
-    z-index: 99999;
-    background: #1e1e2e;
+.cps-sort-btn {
+    display: block;
+    width: calc(100% - 16px);
+    margin: 6px 8px;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 12px;
-    padding: 6px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    animation: cps-pop 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
-    /* Фиксируем на экране, независимо от скролла */
-    position: fixed;
-}
-
-@keyframes cps-pop {
-    from { opacity: 0; transform: scale(0.85) translateY(-4px); }
-    to   { opacity: 1; transform: scale(1)    translateY(0); }
-}
-
-.cps-menu-title {
-    font-size: 11px;
-    color: rgba(255,255,255,0.4);
-    text-align: center;
-    padding: 2px 8px 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-    margin: 0 auto;
-    font-family: inherit;
-}
-
-.cps-menu-btn {
-    width: 100%;
-    padding: 10px 14px;
-    border: none;
     border-radius: 8px;
-    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
     font-family: inherit;
     cursor: pointer;
-    text-align: left;
-    transition: background 0.12s ease, transform 0.1s ease;
+    text-align: center;
+    transition: background 0.15s, color 0.15s;
+    letter-spacing: 0.3px;
+}
+
+.cps-sort-btn:hover {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+}
+
+.cps-sort-btn.cps-active {
+    background: rgba(46, 125, 50, 0.5);
+    border-color: rgba(67, 160, 71, 0.6);
+    color: #a5d6a7;
+}
+
+/* ── Стрелки на карточках в режиме сортировки ───────────────────────── */
+
+.cps-arrows {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 50;
+}
+
+.cps-arrow {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 5px;
+    font-size: 13px;
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    transition: transform 0.1s, background 0.1s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
     color: #fff;
-    font-weight: 500;
 }
 
-.cps-menu-btn:active {
-    transform: scale(0.97);
-}
+.cps-arrow:active { transform: scale(0.92); }
 
-.cps-menu-btn-top {
-    background: rgba(46, 125, 50, 0.7);
-}
-.cps-menu-btn-top:hover {
-    background: rgba(67, 160, 71, 0.85);
-}
+.cps-arrow-top   { background: #2e7d32; }
+.cps-arrow-top:hover { background: #43a047; }
 
-.cps-menu-btn-bot {
-    background: rgba(109, 31, 31, 0.7);
-}
-.cps-menu-btn-bot:hover {
-    background: rgba(192, 57, 43, 0.85);
-}
+.cps-arrow-bot   { background: #6d1f1f; }
+.cps-arrow-bot:hover { background: #c0392b; }
 
-.cps-menu-btn-reset {
-    background: rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.55);
-    font-size: 13px;
+.cps-arrow-reset {
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.6);
+    font-size: 11px;
 }
-.cps-menu-btn-reset:hover {
-    background: rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.8);
-}
+.cps-arrow-reset:hover { background: rgba(255,255,255,0.25); }
 
-/* ── Индикатор долгого нажатия (пульс на карточке) ──────────────────── */
-
-.character_select:active,
-.persona_item:active,
-.avatar-container:active {
-    transition: box-shadow 0.5s ease;
-    box-shadow: 0 0 0 2px rgba(255,255,255,0.15), inset 0 0 0 1px rgba(255,255,255,0.08);
+/* Подсветка карточек в режиме сортировки */
+.character_select:has(.cps-arrows) {
+    outline: 1px solid rgba(255,255,255,0.08);
 }
 
 /* ── Toast ──────────────────────────────────────────────────────────── */
